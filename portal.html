@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIOn3 — Agent Portal</title>
+<style>
+/* ============ THEME TOKENS (matches AIOn3 OS) ============ */
+:root {
+  --accent: #18e0c8;
+  --accent-2: #7c5cff;
+  --accent-grad: linear-gradient(135deg, #18e0c8 0%, #7c5cff 100%);
+  --ok: #18e0a0;
+  --warn: #ffb020;
+  --danger: #ff5d7a;
+  --wa: #25d366;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 10px 40px rgba(0,0,0,.45);
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+html[data-theme="dark"] {
+  --bg: #0a0c12; --bg-2: #0f131c;
+  --panel: rgba(255,255,255,.035); --panel-solid: #121723; --panel-hover: rgba(255,255,255,.06);
+  --border: rgba(255,255,255,.08);
+  --text: #e8ecf4; --text-dim: #8b94a7; --text-faint: #5a6275;
+  --glow: 0 0 0 1px rgba(24,224,200,.25), 0 0 30px rgba(24,224,200,.12);
+}
+html[data-theme="light"] {
+  --bg: #f3f5f9; --bg-2: #e9edf4;
+  --panel: rgba(255,255,255,.7); --panel-solid: #ffffff; --panel-hover: rgba(0,0,0,.03);
+  --border: rgba(10,20,40,.1);
+  --text: #161b26; --text-dim: #5a6478; --text-faint: #97a0b3;
+  --shadow: 0 10px 40px rgba(30,40,80,.12);
+  --glow: 0 0 0 1px rgba(124,92,255,.25), 0 0 24px rgba(124,92,255,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  overflow:hidden; -webkit-font-smoothing:antialiased;
+}
+body::before {
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(60vw 60vw at 85% -10%, rgba(124,92,255,.14), transparent 60%),
+    radial-gradient(50vw 50vw at -10% 110%, rgba(24,224,200,.12), transparent 60%);
+}
+::selection { background: rgba(24,224,200,.3); }
+::-webkit-scrollbar { width:9px; height:9px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius:10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ============ LAYOUT SHELL ============ */
+.app { display:grid; grid-template-columns: 248px 1fr; height:100vh; position:relative; z-index:1; }
+
+.sidebar {
+  border-right:1px solid var(--border); background: var(--bg-2);
+  display:flex; flex-direction:column; padding:18px 14px; gap:4px; overflow-y:auto;
+}
+.brand { display:flex; align-items:center; gap:11px; padding:6px 8px 16px; }
+.brand .mark { width:34px; height:34px; flex-shrink:0; }
+.brand .name { font-size:18px; font-weight:800; letter-spacing:-.5px; }
+.brand .name b { background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.brand .tag { font-size:10px; color:var(--text-faint); letter-spacing:.5px; text-transform:uppercase; }
+
+.nav-label { font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-faint); padding:14px 10px 6px; }
+.nav-item {
+  display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:var(--radius-sm);
+  color:var(--text-dim); cursor:pointer; font-size:14px; font-weight:500; transition: all .15s; position:relative;
+}
+.nav-item svg { width:18px; height:18px; flex-shrink:0; }
+.nav-item:hover { background:var(--panel-hover); color:var(--text); }
+.nav-item.active { background: var(--panel); color:var(--text); box-shadow: var(--glow); }
+.nav-item.active::before { content:""; position:absolute; left:-14px; top:50%; transform:translateY(-50%); width:3px; height:20px; border-radius:3px; background:var(--accent-grad); }
+.nav-item .badge { margin-left:auto; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:20px; background:rgba(24,224,200,.15); color:var(--accent); letter-spacing:.3px; }
+.nav-item .count { margin-left:auto; font-size:11px; font-weight:700; color:var(--text-faint); }
+
+.sidebar-foot { margin-top:auto; padding-top:14px; }
+.client-chip {
+  display:flex; align-items:center; gap:10px; padding:10px; border-radius:var(--radius-sm);
+  background:var(--panel); border:1px solid var(--border);
+}
+.avatar { width:34px; height:34px; border-radius:50%; background:var(--accent-grad); display:flex; align-items:center; justify-content:center; font-weight:700; color:#06121a; font-size:13px; flex-shrink:0; }
+.client-chip .meta { overflow:hidden; }
+.client-chip .meta .nm { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.client-chip .meta .pl { font-size:11px; color:var(--text-faint); }
+
+/* ============ MAIN ============ */
+.main { display:flex; flex-direction:column; overflow:hidden; }
+.topbar {
+  display:flex; align-items:center; gap:16px; padding:0 26px; height:62px;
+  border-bottom:1px solid var(--border); flex-shrink:0; background:rgba(10,12,18,.4); backdrop-filter:blur(12px);
+}
+html[data-theme="light"] .topbar { background:rgba(255,255,255,.5); }
+.topbar h1 { font-size:18px; font-weight:700; letter-spacing:-.3px; }
+.topbar .sub { font-size:12.5px; color:var(--text-dim); margin-top:1px; }
+.topbar .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+.icon-btn {
+  width:38px; height:38px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--panel);
+  color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; position:relative;
+}
+.icon-btn:hover { color:var(--text); background:var(--panel-hover); }
+.icon-btn svg { width:18px; height:18px; }
+.ro-pill {
+  display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--warn);
+  padding:7px 13px; border-radius:20px; background:rgba(255,176,32,.1); border:1px solid rgba(255,176,32,.25);
+}
+.ro-pill svg { width:14px; height:14px; }
+
+.content { flex:1; overflow-y:auto; padding:26px; }
+.view { display:none; animation: fade .35s ease; }
+.view.active { display:block; }
+@keyframes fade { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+
+/* ============ CARDS ============ */
+.card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+.card-head { display:flex; align-items:center; margin-bottom:16px; }
+.card-head h3 { font-size:14.5px; font-weight:700; }
+.card-head .more { margin-left:auto; font-size:12.5px; color:var(--accent); cursor:pointer; }
+.grid { display:grid; gap:16px; }
+.g-4 { grid-template-columns: repeat(4, 1fr); }
+.g-2 { grid-template-columns: 1.6fr 1fr; }
+.g-2e { grid-template-columns: 1fr 1fr; }
+@media (max-width:1100px){ .g-4{grid-template-columns:repeat(2,1fr)} .g-2,.g-2e{grid-template-columns:1fr} }
+.mb { margin-bottom:16px; }
+
+.stat .ico { width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+.stat .ico svg { width:20px; height:20px; }
+.stat .val { font-size:27px; font-weight:800; letter-spacing:-1px; }
+.stat .lbl { font-size:12.5px; color:var(--text-dim); margin-top:2px; }
+.stat .delta { font-size:11.5px; margin-top:9px; font-weight:600; }
+.delta.up { color:var(--ok); } .delta.down { color:var(--danger); } .delta.flat { color:var(--text-faint); }
+.hoverable { transition:all .18s; cursor:default; }
+.hoverable:hover { border-color:rgba(24,224,200,.3); transform:translateY(-2px); box-shadow:var(--shadow); }
+
+/* character avatars (placeholders for commissioned 3D character art) */
+.char-av { border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; color:#06121a; flex-shrink:0; position:relative; box-shadow: inset 0 -3px 8px rgba(0,0,0,.15), inset 0 2px 6px rgba(255,255,255,.25); }
+.char-av .live { position:absolute; right:-1px; bottom:-1px; width:30%; height:30%; min-width:11px; min-height:11px; border-radius:50%; background:var(--ok); border:2.5px solid var(--bg); }
+html[data-theme="light"] .char-av .live { border-color:#fff; }
+
+/* status banner */
+.agent-banner {
+  display:flex; align-items:center; gap:18px; padding:20px 22px; border-radius:var(--radius);
+  background: linear-gradient(120deg, rgba(24,224,200,.08), rgba(124,92,255,.08));
+  border:1px solid var(--border); margin-bottom:16px;
+}
+.agent-banner .hero-av { width:60px; height:60px; font-size:24px; }
+.agent-banner .pulse i { width:13px; height:13px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 0 rgba(24,224,160,.5); animation:pulse 2.2s infinite; }
+@keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(24,224,160,.5)} 70%{box-shadow:0 0 0 12px rgba(24,224,160,0)} 100%{box-shadow:0 0 0 0 rgba(24,224,160,0)} }
+
+/* cast / team */
+.cast-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; }
+.cast-member { display:flex; align-items:center; gap:11px; padding:11px; border-radius:var(--radius-sm); background:var(--panel-hover); border:1px solid var(--border); }
+.cast-member .ca { width:38px; height:38px; font-size:15px; }
+.cast-member .nm { font-size:13px; font-weight:700; }
+.cast-member .rl { font-size:11.5px; color:var(--text-dim); margin-top:1px; }
+.feed-by { display:inline-flex; align-items:center; gap:5px; font-weight:600; color:var(--text); }
+.feed-by .ca { width:16px; height:16px; font-size:9px; }
+.agent-banner .info h2 { font-size:17px; font-weight:700; }
+.agent-banner .info p { font-size:13px; color:var(--text-dim); margin-top:3px; }
+.agent-banner .info b { color:var(--text); }
+.agent-banner .stamp { margin-left:auto; text-align:right; }
+.agent-banner .stamp .big { font-size:14px; font-weight:700; color:var(--ok); }
+.agent-banner .stamp .sm { font-size:11.5px; color:var(--text-faint); margin-top:2px; }
+
+/* activity feed */
+.feed { display:flex; flex-direction:column; }
+.feed-item { display:flex; gap:13px; padding:13px 0; border-bottom:1px solid var(--border); }
+.feed-item:last-child { border-bottom:none; }
+.feed-ico { width:34px; height:34px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.feed-ico svg { width:16px; height:16px; }
+.feed-body { flex:1; min-width:0; }
+.feed-body .t { font-size:13.5px; font-weight:600; }
+.feed-body .d { font-size:12.5px; color:var(--text-dim); margin-top:2px; line-height:1.45; }
+.feed-body .meta { font-size:11px; color:var(--text-faint); margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.chan-tag { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:20px; background:var(--panel-hover); font-weight:600; }
+.chan-tag .dot { width:6px; height:6px; border-radius:50%; }
+.outcome { font-weight:600; }
+.outcome.done { color:var(--ok); } .outcome.await { color:var(--warn); }
+
+/* lists / rows */
+.row { display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border); }
+.row:last-child { border-bottom:none; }
+.row .r-ico { width:40px; height:40px; border-radius:11px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; }
+.row .r-main { flex:1; min-width:0; }
+.row .r-main .tt { font-size:14px; font-weight:600; }
+.row .r-main .ss { font-size:12.5px; color:var(--text-dim); margin-top:2px; }
+.row .r-side { text-align:right; flex-shrink:0; }
+.pill { font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; letter-spacing:.2px; white-space:nowrap; }
+.pill.on { background:rgba(24,224,160,.14); color:var(--ok); }
+.pill.off { background:var(--panel-hover); color:var(--text-faint); }
+.pill.soon { background:rgba(124,92,255,.14); color:var(--accent-2); }
+.pill.paused { background:rgba(255,176,32,.14); color:var(--warn); }
+
+.schedule { font-size:12px; color:var(--text-dim); margin-top:3px; font-family:var(--mono); }
+
+/* memory */
+.mem-cat { font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--text-faint); margin:18px 0 10px; }
+.mem-cat:first-child { margin-top:0; }
+.mem-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+@media (max-width:900px){ .mem-grid{grid-template-columns:1fr} }
+.mem-item { display:flex; gap:11px; padding:12px 14px; background:var(--panel-hover); border:1px solid var(--border); border-radius:var(--radius-sm); }
+.mem-item .k { font-size:12px; color:var(--text-faint); }
+.mem-item .v { font-size:13.5px; font-weight:600; margin-top:2px; }
+.mem-item .src { font-size:10.5px; color:var(--text-faint); margin-top:6px; font-family:var(--mono); }
+
+/* channels & integrations grid */
+.tile-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+@media (max-width:1000px){ .tile-grid{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:640px){ .tile-grid{grid-template-columns:1fr} }
+.tile { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:12px; }
+.tile-top { display:flex; align-items:center; gap:12px; }
+.tile-logo { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.tile .nm { font-size:14.5px; font-weight:700; }
+.tile .desc { font-size:12.5px; color:var(--text-dim); line-height:1.5; flex:1; }
+.tile-foot { display:flex; align-items:center; gap:8px; }
+
+/* plan */
+.bar { height:9px; border-radius:6px; background:var(--panel-hover); overflow:hidden; margin:10px 0 6px; }
+.bar i { display:block; height:100%; border-radius:6px; background:var(--accent-grad); }
+.kv { display:flex; justify-content:space-between; font-size:13px; padding:11px 0; border-bottom:1px solid var(--border); }
+.kv:last-child { border-bottom:none; }
+.kv .k { color:var(--text-dim); } .kv .v { font-weight:600; }
+
+.note { font-size:12px; color:var(--text-faint); margin-top:14px; line-height:1.5; display:flex; gap:8px; }
+.note svg { width:15px; height:15px; flex-shrink:0; margin-top:1px; }
+
+.section-intro { font-size:13.5px; color:var(--text-dim); margin-bottom:18px; max-width:680px; line-height:1.55; }
+.empty-hint { font-size:12.5px; color:var(--text-faint); text-align:center; padding:30px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" fill="none">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#18e0c8"/><stop offset="1" stop-color="#7c5cff"/></linearGradient></defs>
+        <rect x="4" y="4" width="40" height="40" rx="11" stroke="url(#g)" stroke-width="2.5"/>
+        <path d="M16 30l8-16 8 16M19 25h10" stroke="url(#g)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="name">AI<b>On3</b></div>
+        <div class="tag">Agent Portal</div>
+      </div>
+    </div>
+
+    <div class="nav-label">Your Agent</div>
+    <div class="nav-item active" data-view="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Overview</span></div>
+    <div class="nav-item" data-view="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Activity</span><span class="count" id="navActivity">—</span></div>
+    <div class="nav-item" data-view="memory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4 2 5 .5.7 1 1.5 1 2.5V19a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2c0-1 .5-1.8 1-2.5.8-1 2-2.6 2-5a7 7 0 0 0-7-7z"/></svg><span>Memory</span></div>
+    <div class="nav-item" data-view="recipes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Recipes</span><span class="count" id="navRecipes">—</span></div>
+
+    <div class="nav-label">Connections</div>
+    <div class="nav-item" data-view="channels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Channels</span></div>
+    <div class="nav-item" data-view="integrations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Integrations</span></div>
+
+    <div class="nav-label">Account</div>
+    <div class="nav-item" data-view="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg><span>Usage &amp; Plan</span></div>
+
+    <div class="sidebar-foot">
+      <div class="client-chip">
+        <div class="avatar">MW</div>
+        <div class="meta">
+          <div class="nm">Mew</div>
+          <div class="pl">Real Estate + Insurance · Growth</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="vTitle">Overview</h1>
+        <div class="sub" id="vSub">Your personal AI agent at a glance</div>
+      </div>
+      <div class="right">
+        <span class="ro-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>View only</span>
+        <button class="icon-btn" id="themeBtn" title="Toggle theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+        <button class="icon-btn" title="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
+      </div>
+    </div>
+
+    <div class="content" id="content"><!-- views injected --></div>
+  </main>
+</div>
+
+<script>
+/* =====================================================================
+   DATA LAYER — Phase 1 uses mock data for a sample client.
+   In Phase 2 this object is replaced by calls to the AIOn3 control-plane
+   API (read endpoints). Keep all rendering keyed off this shape so the
+   swap is isolated to fetchPortalData().
+   ===================================================================== */
+async function fetchPortalData() {
+  // TODO(phase-2): return await fetch('/api/portal').then(r => r.json())
+  return MOCK;
+}
+
+const MOCK = {
+  client: { name: "Mew", initials: "MW", plan: "Growth", since: "Apr 2026", business: "Real Estate + Insurance" },
+  agent: {
+    name: "Aria",                          // the hero character's name
+    role: "Your Chief of Staff",
+    personality: "Sharp, proactive, on-brand",
+    avatar: { grad:"linear-gradient(135deg,#18e0c8,#7c5cff)", glyph:"A" },
+    status: "online",          // online | degraded | offline
+    lastActive: "2 minutes ago",
+    uptime: "99.97%",
+    deployedSince: "Apr 12, 2026",
+    primaryChannel: "WhatsApp",
+  },
+  // The growth team — specialist agents the Chief of Staff coordinates.
+  // Under the hood these are Hermes subagents — never shown as terminals/RPC.
+  cast: [
+    { name:"Max",   role:"CMO · marketing & content", glyph:"M", grad:"linear-gradient(135deg,#7c5cff,#a78bff)", summon:"Content ideas, captions, repurposing" },
+    { name:"Coco",  role:"COO · CRM & relationships",  glyph:"C", grad:"linear-gradient(135deg,#ff5d7a,#ff8aa6)", summon:"Lead follow-up, referrals, re-engagement" },
+    { name:"Quill", role:"Research & competitor intel",glyph:"Q", grad:"linear-gradient(135deg,#18e0a0,#18e0c8)", summon:"Market, competitor & audience research" },
+    { name:"Remy",  role:"Content production",         glyph:"R", grad:"linear-gradient(135deg,#ffb020,#ff8a3d)", summon:"Edit, generate & schedule posts" },
+  ],
+  stats: {
+    tasksThisWeek: 31,
+    tasksDelta: "+9 new leads vs last week",
+    proactiveMessages: 18,
+    proactiveDelta: "+6 follow-ups vs last week",
+    timeSavedHrs: 12,
+    timeSavedDelta: "content pieces shipped this month",
+    activeRecipes: 4,
+    recipesDelta: "all running",
+  },
+  activity: [
+    { type:"brief", channel:"WhatsApp", by:"Aria", title:"Sent your growth brief", desc:"3 new IG leads overnight, 2 high-intent DMs to reply to, and Russia condo demand is trending up. Want the rundown?", time:"Today · 8:00 AM", outcome:"done" },
+    { type:"email", channel:"WhatsApp", by:"Max", title:"Drafted 3 Reel concepts for review", desc:"Hooks for 'Phuket condos under $200k for foreign buyers' + captions and trending audio — waiting for your OK before Remy schedules them.", time:"Today · 7:40 AM", outcome:"await" },
+    { type:"watch", channel:"WhatsApp", by:"Coco", title:"Re-engaged 5 dormant leads", desc:"Messaged 5 leads who went quiet 30+ days ago with a tailored check-in. 2 replied — added to your hot list.", time:"Yesterday · 3:10 PM", outcome:"done" },
+    { type:"research", channel:"WhatsApp", by:"Quill", title:"Competitor scan: Phuket agents", desc:"Analyzed 6 competing agents' IG. Found a content gap on 'buying process for Russians' you can own. Full brief in WhatsApp.", time:"Yesterday · 11:05 AM", outcome:"done" },
+    { type:"bill", channel:"WhatsApp", by:"Coco", title:"Birthday + referral nudge", desc:"It's your client Anton's birthday Thu — drafted a warm message + a referral ask. Approve to send Thursday 9am.", time:"Jun 22 · 9:30 AM", outcome:"await" },
+    { type:"research", channel:"WhatsApp", by:"Quill", title:"Built a HNW insurance audience", desc:"Compiled public lookalikes of wealthy Thai followers of networking & omakase pages — ready for a targeted ad test.", time:"Jun 22 · 8:00 AM", outcome:"done" },
+    { type:"brief", channel:"WhatsApp", by:"Remy", title:"Repurposed your top Reel", desc:"Cut your best-performing Reel into TikTok, YouTube Shorts & X versions and queued them per your posting schedule.", time:"Jun 21 · 5:15 PM", outcome:"done" },
+  ],
+  recipes: [
+    { name:"Daily growth brief", icon:"📈", desc:"Morning rundown: new leads, hot DMs, content & market signals.", schedule:"Every day · 8:00 AM", status:"on", tier:"fast→strong" },
+    { name:"Lead catcher", icon:"🎯", desc:"Watches IG/WhatsApp DMs, qualifies inbound, drafts first replies.", schedule:"Continuous", status:"on", tier:"fast monitor" },
+    { name:"Relationship keeper", icon:"🤝", desc:"Birthdays, referral asks & re-engaging dormant leads (CRM).", schedule:"Daily", status:"on", tier:"fast monitor" },
+    { name:"Content engine", icon:"🎬", desc:"Ideas, hooks, captions & waterfall repurposing to TikTok/YT/X.", schedule:"Weekdays", status:"on", tier:"strong" },
+    { name:"Competitor & market watch", icon:"🔭", desc:"Tracks competing agents & demand signals in your markets.", schedule:"Every 6 hours", status:"soon", tier:"fast monitor" },
+    { name:"Ad targeting builder", icon:"📊", desc:"Builds lookalike audiences & suggests budget once data is rich.", schedule:"On request", status:"paused", tier:"strong" },
+  ],
+  memory: {
+    "Business": [
+      { k:"What you sell", v:"Real estate (condos, foreign buyers) + insurance (HNW Thai)", src:"set by you" },
+      { k:"Hero product", v:"High-net-worth insurance — bigger tickets, better margin", src:"learned · May 3" },
+      { k:"Biggest strength", v:"Warm network & referrals — you close people around you", src:"learned" },
+      { k:"Lead flow today", v:"Instagram → DM → WhatsApp", src:"learned · Apr 22" },
+    ],
+    "Audience & markets": [
+      { k:"Real estate buyers", v:"US, Europe; growing Russia & China; want HK/SG", src:"set by you" },
+      { k:"Insurance buyers", v:"Wealthy Thai — networking-course & omakase crowd", src:"learned" },
+      { k:"Inventory", v:"Mostly condos (volume); buying harder than rental", src:"learned · May 18" },
+    ],
+    "Brand & content": [
+      { k:"Brand", v:"Personal brand — you are the face on Instagram", src:"set by you" },
+      { k:"Aspiration", v:"Thailand's go-to AI-powered real estate voice", src:"learned" },
+      { k:"Posting style", v:"You film & edit your own clips; reels-first", src:"learned" },
+    ],
+  },
+  channels: [
+    { name:"WhatsApp", logo:"🟢", color:"#25d366", status:"on", role:"Primary", desc:"Aria lives here. Growth briefs, lead alerts, and approvals all happen in this chat." },
+    { name:"Instagram DMs", logo:"📸", color:"#e1306c", status:"on", role:"Lead source", desc:"Watches inbound DMs, qualifies leads, and drafts first replies for you." },
+    { name:"Line", logo:"💬", color:"#06c755", status:"off", role:"Available", desc:"Popular with your Thai clients — ask your AIOn3 contact to add it." },
+    { name:"Telegram", logo:"✈️", color:"#229ed9", status:"off", role:"Available", desc:"Can be added as a second channel for international clients." },
+  ],
+  integrations: [
+    { name:"Instagram", logo:"📸", status:"on", desc:"Reads your content & DMs; powers lead capture and competitor scans." },
+    { name:"WhatsApp", logo:"🟢", status:"on", desc:"Your home channel for leads, follow-ups, and approvals." },
+    { name:"Web research", logo:"🌐", status:"on", desc:"Scans public data for market, competitor & audience intel." },
+    { name:"Lead sheet / CRM", logo:"📇", status:"on", desc:"Reads & updates your client list — the start of a real CRM." },
+    { name:"Facebook", logo:"📘", status:"off", desc:"Not connected. Would widen listing sourcing & ad targeting." },
+    { name:"TikTok / YouTube", logo:"🎞️", status:"off", desc:"Not connected. Would complete waterfall content repurposing." },
+  ],
+  plan: {
+    name:"Growth",
+    price:"$390 / month",
+    renews:"Jul 12, 2026",
+    tasksUsed:31, tasksIncluded:150,
+    proactiveUsed:18,
+    instance:"Isolated · ap-southeast",
+    model:"Auto-routed (OpenRouter)",
+  },
+};
+
+/* =====================================================================
+   ICON HELPERS
+   ===================================================================== */
+const channelColor = { WhatsApp:"#25d366", Email:"#7c5cff", WhatsApp_:"#25d366", Telegram:"#229ed9", Signal:"#3a76f0" };
+
+// Resolve a character (hero or cast member) by name → {glyph, grad}
+function charByName(name){
+  if (D.agent && D.agent.name === name) return { glyph:D.agent.avatar.glyph, grad:D.agent.avatar.grad };
+  const c = (D.cast||[]).find(c => c.name === name);
+  return c ? { glyph:c.glyph, grad:c.grad } : { glyph:"?", grad:"var(--panel-hover)" };
+}
+// Render a circular character avatar. cls adds sizing (e.g. 'hero-av', 'ca'); live=true shows online dot.
+function charAvatar(name, cls, live){
+  const c = charByName(name);
+  return `<div class="char-av ${cls||''}" style="background:${c.grad}">${c.glyph}${live?'<span class="live"></span>':''}</div>`;
+}
+function activityIcon(type){
+  const m = {
+    brief:   {bg:"rgba(255,176,32,.14)",  c:"#ffb020", p:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'},
+    email:   {bg:"rgba(124,92,255,.14)",  c:"#7c5cff", p:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'},
+    watch:   {bg:"rgba(24,224,200,.14)",  c:"#18e0c8", p:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'},
+    research:{bg:"rgba(24,224,160,.14)",  c:"#18e0a0", p:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/>'},
+    bill:    {bg:"rgba(255,93,122,.14)",  c:"#ff5d7a", p:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'},
+  };
+  const i = m[type] || m.brief;
+  return `<div class="feed-ico" style="background:${i.bg}"><svg viewBox="0 0 24 24" fill="none" stroke="${i.c}" stroke-width="2">${i.p}</svg></div>`;
+}
+
+/* =====================================================================
+   VIEW RENDERERS
+   ===================================================================== */
+const D = MOCK; // alias; populated by fetchPortalData()
+
+function viewOverview(){
+  const s = D.stats, a = D.agent;
+  return `
+  <div class="agent-banner">
+    ${charAvatar(a.name, 'hero-av', true)}
+    <div class="info">
+      <h2>${a.name} is ${a.status === 'online' ? 'online &amp; working' : a.status}</h2>
+      <p>${a.role} · <b>${a.personality}</b> · lives in <b>${a.primaryChannel}</b> · last active <b>${a.lastActive}</b></p>
+    </div>
+    <div class="stamp">
+      <div class="big">${a.uptime} uptime</div>
+      <div class="sm">Managed &amp; monitored by AIOn3</div>
+    </div>
+  </div>
+
+  <div class="grid g-4 mb">
+    ${statCard('rgba(255,176,32,.12)','#ffb020','M12 2v2M12 20v2M2 12h2M20 12h2','<circle cx="12" cy="12" r="4"/>', s.tasksThisWeek, 'New leads this week', s.tasksDelta, 'up')}
+    ${statCard('rgba(37,211,102,.12)','#25d366','M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z','', s.proactiveMessages, 'Follow-ups sent', s.proactiveDelta, 'up')}
+    ${statCard('rgba(124,92,255,.14)','#7c5cff','M19 11H5m14 0a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2','', s.timeSavedHrs, 'Content pieces shipped', s.timeSavedDelta, 'flat')}
+    ${statCard('rgba(24,224,160,.14)','#18e0a0','M22 11.08V12a10 10 0 1 1-5.93-9.14','M22 4 12 14.01l-3-3', s.activeRecipes, 'Growth plays running', s.recipesDelta, 'up')}
+  </div>
+
+  <div class="grid g-2">
+    <div class="card">
+      <div class="card-head"><h3>Recent activity</h3><span class="more" data-goto="activity">View all</span></div>
+      <div class="feed">${D.activity.slice(0,5).map(feedItem).join('')}</div>
+    </div>
+    <div>
+      <div class="card mb">
+        <div class="card-head"><h3>${a.name}'s team</h3></div>
+        <p style="font-size:12.5px;color:var(--text-dim);margin:-6px 0 14px;line-height:1.5">${a.name} brings in a specialist when a job needs one — you only ever talk to ${a.name}.</p>
+        <div class="cast-grid">${D.cast.map(c=>`
+          <div class="cast-member">
+            ${charAvatar(c.name,'ca',false)}
+            <div><div class="nm">${c.name}</div><div class="rl">${c.role}</div></div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Running for you</h3><span class="more" data-goto="recipes">Recipes</span></div>
+        <div>${D.recipes.filter(r=>r.status==='on').map(r=>`
+          <div class="row">
+            <div class="r-ico" style="background:var(--panel-hover)">${r.icon}</div>
+            <div class="r-main"><div class="tt">${r.name}</div><div class="schedule">${r.schedule}</div></div>
+            <div class="r-side"><span class="pill on">Running</span></div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function statCard(bg, c, p1, p2, val, lbl, delta, dir){
+  return `<div class="card stat hoverable">
+    <div class="ico" style="background:${bg}"><svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2">${p1?'<path d="'+p1+'"/>':''}${p2?'<path d="'+p2+'"/>':''}</svg></div>
+    <div class="val">${val}</div><div class="lbl">${lbl}</div>
+    <div class="delta ${dir}">${dir==='up'?'▲':dir==='down'?'▼':'•'} ${delta}</div></div>`;
+}
+
+function feedItem(it){
+  const col = channelColor[it.channel] || '#8b94a7';
+  const outcomeTxt = it.outcome==='done' ? 'Completed' : 'Awaiting your OK';
+  return `<div class="feed-item">
+    ${activityIcon(it.type)}
+    <div class="feed-body">
+      <div class="t">${it.title}</div>
+      <div class="d">${it.desc}</div>
+      <div class="meta">
+        ${it.by ? `<span class="feed-by">${charAvatar(it.by,'ca',false)}${it.by}</span>` : ''}
+        <span class="chan-tag"><span class="dot" style="background:${col}"></span>${it.channel}</span>
+        <span>${it.time}</span>
+        <span class="outcome ${it.outcome}">${outcomeTxt}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function viewActivity(){
+  return `
+  <p class="section-intro">A plain-English log of everything your agent has done — across every channel. Items marked <b style="color:var(--warn)">Awaiting your OK</b> need a reply from you in WhatsApp before the agent proceeds.</p>
+  <div class="card"><div class="feed">${D.activity.map(feedItem).join('')}</div></div>`;
+}
+
+function viewMemory(){
+  const cats = Object.entries(D.memory).map(([cat, items]) => `
+    <div class="mem-cat">${cat}</div>
+    <div class="mem-grid">${items.map(m=>`
+      <div class="mem-item">
+        <div style="flex:1">
+          <div class="k">${m.k}</div>
+          <div class="v">${m.v}</div>
+          <div class="src">${m.src}</div>
+        </div>
+      </div>`).join('')}</div>`).join('');
+  return `
+  <p class="section-intro">Everything your agent remembers about you, so it can act in context. This is private to your isolated agent. <b>Editing &amp; "forget this"</b> are coming with self-serve — for now, ask your AIOn3 contact to correct anything.</p>
+  <div class="card">${cats}
+    <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Stored only in your dedicated agent instance. Never shared with other clients or used to train models.</div>
+  </div>`;
+}
+
+function viewRecipes(){
+  return `
+  <p class="section-intro">Recipes are the recurring jobs your agent runs for you. AIOn3 set these up during onboarding. A toggleable self-serve gallery is coming in the next release.</p>
+  <div class="card">${D.recipes.map(r=>{
+    const pill = {on:'<span class="pill on">Running</span>', soon:'<span class="pill soon">Available soon</span>', paused:'<span class="pill paused">Paused</span>'}[r.status];
+    return `<div class="row">
+      <div class="r-ico" style="background:var(--panel-hover)">${r.icon}</div>
+      <div class="r-main">
+        <div class="tt">${r.name}</div>
+        <div class="ss">${r.desc}</div>
+        <div class="schedule">${r.schedule} · ${r.tier}</div>
+      </div>
+      <div class="r-side">${pill}</div>
+    </div>`;}).join('')}
+  </div>`;
+}
+
+function viewChannels(){
+  return `
+  <p class="section-intro">Where your agent can reach you and act. WhatsApp is your agent's home — it's where briefs, alerts, and approvals happen.</p>
+  <div class="tile-grid">${D.channels.map(c=>`
+    <div class="tile">
+      <div class="tile-top">
+        <div class="tile-logo" style="background:rgba(255,255,255,.05)">${c.logo}</div>
+        <div><div class="nm">${c.name}</div><div class="ss" style="font-size:12px;color:var(--text-faint)">${c.role}</div></div>
+      </div>
+      <div class="desc">${c.desc}</div>
+      <div class="tile-foot">${c.status==='on'?'<span class="pill on">Connected</span>':'<span class="pill off">Not connected</span>'}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function viewIntegrations(){
+  return `
+  <p class="section-intro">The tools your agent is allowed to touch on your behalf. AIOn3 wired these up securely during onboarding — your credentials stay in your isolated instance.</p>
+  <div class="tile-grid">${D.integrations.map(c=>`
+    <div class="tile">
+      <div class="tile-top">
+        <div class="tile-logo" style="background:rgba(255,255,255,.05)">${c.logo}</div>
+        <div class="nm">${c.name}</div>
+      </div>
+      <div class="desc">${c.desc}</div>
+      <div class="tile-foot">${c.status==='on'?'<span class="pill on">Connected</span>':'<span class="pill off">Available</span>'}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function viewPlan(){
+  const p = D.plan;
+  const pct = Math.round(p.tasksUsed / p.tasksIncluded * 100);
+  return `
+  <div class="grid g-2e">
+    <div class="card">
+      <div class="card-head"><h3>Your plan</h3></div>
+      <div style="font-size:26px;font-weight:800;letter-spacing:-1px">${p.name}</div>
+      <div style="color:var(--text-dim);font-size:14px;margin-top:2px">${p.price} · renews ${p.renews}</div>
+      <div style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-dim)">Tasks this cycle</span><span style="font-weight:600">${p.tasksUsed} / ${p.tasksIncluded}</span></div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div style="font-size:11.5px;color:var(--text-faint)">${p.tasksIncluded - p.tasksUsed} tasks remaining</div>
+      </div>
+      <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        A "task" is one job your agent completes for you (a brief, a research run, a triage pass). You're never billed per word or per token.</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Your deployment</h3></div>
+      <div class="kv"><span class="k">Agent</span><span class="v">Hermes · managed</span></div>
+      <div class="kv"><span class="k">Instance</span><span class="v">${p.instance}</span></div>
+      <div class="kv"><span class="k">Isolation</span><span class="v">Dedicated to you</span></div>
+      <div class="kv"><span class="k">Model</span><span class="v">${p.model}</span></div>
+      <div class="kv"><span class="k">Client since</span><span class="v">${D.client.since}</span></div>
+      <div class="kv"><span class="k">Status</span><span class="v" style="color:var(--ok)">● Operational</span></div>
+      <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Your agent runs in its own isolated, hardened environment. AIOn3 manages the model routing, credits, and uptime — you never see a config file.</div>
+    </div>
+  </div>`;
+}
+
+/* =====================================================================
+   ROUTER
+   ===================================================================== */
+const VIEWS = {
+  overview:    { title:"Overview",       sub:"Your AI growth team at a glance",          render:viewOverview },
+  activity:    { title:"Activity",       sub:"Everything your agent has done for you",   render:viewActivity },
+  memory:      { title:"Memory",         sub:"What your agent knows about you",          render:viewMemory },
+  recipes:     { title:"Recipes",        sub:"The recurring jobs running for you",        render:viewRecipes },
+  channels:    { title:"Channels",       sub:"Where your agent lives and reaches you",    render:viewChannels },
+  integrations:{ title:"Integrations",   sub:"What your agent is allowed to touch",       render:viewIntegrations },
+  plan:        { title:"Usage & Plan",   sub:"Your subscription and deployment",          render:viewPlan },
+};
+
+function go(view){
+  const v = VIEWS[view]; if(!v) return;
+  document.getElementById('vTitle').textContent = v.title;
+  document.getElementById('vSub').innerHTML = v.sub;
+  document.getElementById('content').innerHTML = `<div class="view active">${v.render()}</div>`;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view===view));
+  document.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', () => go(el.dataset.goto)));
+}
+
+/* nav + theme wiring */
+document.querySelectorAll('.nav-item').forEach(n => n.addEventListener('click', () => go(n.dataset.view)));
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const h = document.documentElement;
+  h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+});
+
+/* counts in sidebar */
+document.getElementById('navActivity').textContent = MOCK.activity.length;
+document.getElementById('navRecipes').textContent = MOCK.recipes.filter(r=>r.status==='on').length;
+
+/* boot */
+(async function(){
+  const data = await fetchPortalData();
+  Object.assign(D, data); // hydrate (mock today, API tomorrow)
+  go('overview');
+})();
+</script>
+</body>
+</html>
