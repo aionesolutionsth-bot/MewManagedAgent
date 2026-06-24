@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIOn3 — Your Intake</title>
+<style>
+:root{
+  --accent:#18e0c8; --accent-2:#7c5cff; --accent-grad:linear-gradient(135deg,#18e0c8 0%,#7c5cff 100%);
+  --ok:#18e0a0; --warn:#ffb020; --radius:16px; --radius-sm:10px; --shadow:0 10px 40px rgba(0,0,0,.45);
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+html[data-theme="dark"]{ --bg:#0a0c12; --bg-2:#0f131c; --panel:rgba(255,255,255,.035); --panel-hover:rgba(255,255,255,.06); --border:rgba(255,255,255,.09); --text:#e8ecf4; --text-dim:#8b94a7; --text-faint:#5a6275; --glow:0 0 0 1px rgba(24,224,200,.3),0 0 26px rgba(24,224,200,.14); }
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{ font-family:var(--font); background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; overflow:hidden; }
+body::before{ content:""; position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(55vw 55vw at 85% -10%,rgba(124,92,255,.13),transparent 60%),radial-gradient(50vw 50vw at -8% 110%,rgba(24,224,200,.11),transparent 60%); }
+::-webkit-scrollbar{ width:8px; } ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:8px; }
+::selection{ background:rgba(24,224,200,.3); }
+
+.app{ display:grid; grid-template-columns:300px 1fr; height:100vh; position:relative; z-index:1; }
+
+/* ===== SIDEBAR ===== */
+.side{ border-right:1px solid var(--border); background:var(--bg-2); display:flex; flex-direction:column; padding:20px 16px; overflow-y:auto; }
+.brand{ display:flex; align-items:center; gap:10px; padding:4px 6px 18px; }
+.brand .mark{ width:30px; height:30px; }
+.brand .name{ font-size:17px; font-weight:800; letter-spacing:-.5px; }
+.brand .name b{ background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+.prog-card{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:15px; margin-bottom:18px; }
+.prog-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+.prog-top .lbl{ font-size:12px; color:var(--text-dim); } .prog-top .pct{ font-size:14px; font-weight:800; color:var(--accent); }
+.prog-bar{ height:7px; border-radius:6px; background:var(--panel-hover); overflow:hidden; }
+.prog-bar i{ display:block; height:100%; background:var(--accent-grad); border-radius:6px; transition:width .35s; }
+.save-ind{ font-size:11px; color:var(--text-faint); margin-top:9px; display:flex; align-items:center; gap:6px; }
+.save-ind .d{ width:6px; height:6px; border-radius:50%; background:var(--ok); }
+
+.sec-nav{ display:flex; flex-direction:column; gap:2px; }
+.sec-item{ display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:var(--radius-sm); cursor:pointer; color:var(--text-dim); font-size:13.5px; transition:all .15s; }
+.sec-item:hover{ background:var(--panel-hover); color:var(--text); }
+.sec-item.active{ background:var(--panel); color:var(--text); box-shadow:var(--glow); }
+.sec-ico{ width:26px; height:26px; border-radius:8px; background:var(--panel-hover); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+.sec-item.active .sec-ico{ background:rgba(24,224,200,.14); }
+.sec-item .tt{ flex:1; } .sec-num{ font-size:11px; color:var(--text-faint); }
+.sec-item .tick{ width:16px; height:16px; border-radius:50%; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.sec-item.done .tick{ background:var(--ok); border-color:var(--ok); }
+.sec-item.done .tick::after{ content:"✓"; font-size:9px; font-weight:800; color:#06121a; }
+
+/* ===== MAIN ===== */
+.main{ display:flex; flex-direction:column; overflow:hidden; }
+.topbar{ display:flex; align-items:center; gap:14px; padding:0 34px; height:60px; border-bottom:1px solid var(--border); background:rgba(10,12,18,.4); backdrop-filter:blur(12px); flex-shrink:0; }
+.topbar .crumb{ font-size:12.5px; color:var(--text-faint); } .topbar .crumb b{ color:var(--text-dim); font-weight:600; }
+.topbar .right{ margin-left:auto; display:flex; gap:10px; }
+.gbtn{ border:1px solid var(--border); background:var(--panel); color:var(--text-dim); border-radius:var(--radius-sm); padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font); }
+.gbtn:hover{ color:var(--text); background:var(--panel-hover); }
+
+.scroll{ flex:1; overflow-y:auto; padding:34px; }
+.sheet{ max-width:720px; }
+.sec-head .eyebrow{ font-size:12px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--accent); }
+.sec-head h1{ font-size:27px; font-weight:800; letter-spacing:-.8px; margin-top:8px; }
+.sec-head .intro{ font-size:14px; color:var(--text-dim); margin-top:10px; line-height:1.6; }
+.sec-head{ margin-bottom:26px; padding-bottom:22px; border-bottom:1px solid var(--border); }
+
+.field{ margin-bottom:24px; }
+.field > label{ display:block; font-size:14.5px; font-weight:700; margin-bottom:6px; }
+.field .req{ color:var(--warn); margin-left:3px; } .field .opt{ color:var(--text-faint); font-size:12px; font-weight:500; margin-left:6px; }
+.field .help{ font-size:12.5px; color:var(--text-faint); margin-bottom:11px; line-height:1.5; }
+input.t, textarea.t{ width:100%; background:var(--panel); border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; color:var(--text); font-family:var(--font); font-size:14px; transition:border .15s; resize:vertical; }
+input.t:focus, textarea.t:focus{ outline:none; border-color:var(--accent); }
+textarea.t{ min-height:92px; line-height:1.55; } textarea.t.big{ min-height:150px; }
+input.t::placeholder, textarea.t::placeholder{ color:var(--text-faint); }
+
+.chips{ display:flex; flex-wrap:wrap; gap:9px; }
+.chip{ border:1.5px solid var(--border); background:var(--panel); border-radius:22px; padding:9px 16px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-dim); transition:all .14s; user-select:none; }
+.chip:hover{ color:var(--text); border-color:var(--text-faint); }
+.chip.sel{ border-color:var(--accent); background:rgba(24,224,200,.1); color:var(--text); }
+.chip.sel::before{ content:"✓ "; color:var(--accent); font-weight:800; }
+
+.scale{ display:flex; gap:9px; align-items:center; }
+.scale .s{ flex:1; text-align:center; padding:12px 0; border:1.5px solid var(--border); border-radius:var(--radius-sm); background:var(--panel); cursor:pointer; font-weight:700; font-size:15px; color:var(--text-dim); transition:all .14s; }
+.scale .s:hover{ border-color:var(--text-faint); color:var(--text); }
+.scale .s.sel{ border-color:var(--accent); background:rgba(24,224,200,.1); color:var(--text); }
+.scale-ends{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-faint); margin-top:7px; }
+
+.tags-wrap{ }
+.tags-in{ width:100%; background:var(--panel); border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; color:var(--text); font-family:var(--font); font-size:14px; }
+.tags-in:focus{ outline:none; border-color:var(--accent); }
+.tags{ display:flex; flex-wrap:wrap; gap:8px; margin-top:11px; }
+.tag{ display:inline-flex; align-items:center; gap:7px; background:rgba(124,92,255,.13); border:1px solid rgba(124,92,255,.3); color:#cdbcff; border-radius:20px; padding:6px 12px; font-size:12.5px; font-weight:600; }
+.tag .x{ cursor:pointer; opacity:.7; } .tag .x:hover{ opacity:1; }
+
+.footer{ display:flex; align-items:center; gap:12px; padding:18px 34px; border-top:1px solid var(--border); background:rgba(10,12,18,.5); flex-shrink:0; }
+.btn{ border:none; cursor:pointer; font-family:var(--font); font-weight:600; font-size:14px; border-radius:var(--radius-sm); padding:11px 22px; transition:all .15s; display:inline-flex; align-items:center; gap:8px; }
+.btn.ghost{ background:transparent; color:var(--text-dim); border:1px solid var(--border); }
+.btn.ghost:hover{ color:var(--text); background:var(--panel-hover); }
+.btn.primary{ background:var(--accent-grad); color:#06121a; }
+.btn.primary:hover{ filter:brightness(1.08); }
+.btn svg{ width:16px; height:16px; }
+.footer .mid{ margin-left:auto; font-size:12.5px; color:var(--text-faint); }
+.footer .mid b{ color:var(--text-dim); }
+
+/* done overlay */
+.done-card{ max-width:560px; text-align:center; margin:40px auto; }
+.done-card .orb{ width:84px; height:84px; border-radius:50%; background:var(--accent-grad); display:flex; align-items:center; justify-content:center; font-size:38px; margin:0 auto 22px; box-shadow:0 0 0 8px rgba(24,224,200,.08),0 16px 50px rgba(24,224,200,.22); }
+.done-card h1{ font-size:28px; font-weight:800; letter-spacing:-.6px; }
+.done-card p{ font-size:14.5px; color:var(--text-dim); margin-top:12px; line-height:1.6; }
+.steps3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:28px; text-align:left; }
+.s3{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:15px; }
+.s3 .n{ font-size:12px; font-weight:800; color:var(--accent); } .s3 .t{ font-size:13.5px; font-weight:700; margin-top:5px; } .s3 .d{ font-size:12px; color:var(--text-dim); margin-top:4px; line-height:1.45; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#18e0c8"/><stop offset="1" stop-color="#7c5cff"/></linearGradient></defs><rect x="4" y="4" width="40" height="40" rx="11" stroke="url(#g)" stroke-width="2.5"/><path d="M16 30l8-16 8 16M19 25h10" stroke="url(#g)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="name">AI<b>On3</b></div>
+    </div>
+    <div class="prog-card">
+      <div class="prog-top"><span class="lbl">Intake progress</span><span class="pct" id="pct">0%</span></div>
+      <div class="prog-bar"><i id="bar" style="width:0%"></i></div>
+      <div class="save-ind"><span class="d"></span><span id="saveTxt">Saved automatically</span></div>
+    </div>
+    <div class="sec-nav" id="secNav"></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="crumb">Client intake · <b id="crumbSec">—</b></div>
+      <div class="right">
+        <button class="gbtn" id="clearBtn">Clear</button>
+        <button class="gbtn" id="exitBtn">Save &amp; exit</button>
+      </div>
+    </div>
+    <div class="scroll" id="scroll"><div class="sheet" id="sheet"></div></div>
+    <div class="footer">
+      <button class="btn ghost" id="back">Back</button>
+      <span class="mid">Section <b id="secX">1</b> of <b id="secN">10</b> · honest, detailed answers = a sharper agent</span>
+      <button class="btn primary" id="next">Next section <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+  </main>
+</div>
+
+<script>
+/* =====================================================================
+   SCHEMA — the AIOn3 deep context intake (growth-team / founder ICP).
+   Field types: text | textarea | chips (multi) | select (single) | scale | tags
+   Mark fields {opt:true} to make them optional (not counted toward progress).
+   ===================================================================== */
+const SECTIONS = [
+  { id:"you", icon:"👤", title:"You & your brand", intro:"This agent becomes an extension of you — so it starts with you. The more it understands who you are, the more it sounds and acts like you.", fields:[
+    { id:"name", type:"text", label:"Your name", ph:"e.g. Mew" },
+    { id:"role", type:"text", label:"What do you do?", ph:"e.g. Real estate + insurance agent" },
+    { id:"oneliner", type:"textarea", label:"Describe your business in a sentence or two", ph:"What you do, for whom, and the result you create." },
+    { id:"story", type:"textarea", label:"Your story", help:"How did you get here? What should people know about you? Don't be modest — this shapes your brand voice.", ph:"" },
+    { id:"usp", type:"textarea", label:"What makes you different?", help:"Why do clients choose you over everyone else doing the same thing?", ph:"" },
+    { id:"strengths", type:"textarea", label:"Your biggest strengths", ph:"e.g. warm network, strong referrals, great on camera…" },
+    { id:"drains", type:"textarea", label:"Where do you struggle or lose time?", help:"Be honest — this is where your agent earns its keep.", ph:"" },
+  ]},
+  { id:"sell", icon:"💼", title:"What you sell", intro:"Your offers and economics, so the agent knows what to push, to whom, and what a win is worth.", fields:[
+    { id:"offers", type:"textarea", label:"What products or services do you sell?", ph:"List your main offers." },
+    { id:"hero", type:"text", label:"Your hero product", help:"The one you most want to sell — usually best margin or best fit.", ph:"e.g. High-net-worth insurance" },
+    { id:"price", type:"text", label:"Typical price range / ticket size", ph:"e.g. condos $150k–$500k; insurance ฿100k–฿200k/yr" },
+    { id:"model", type:"chips", label:"How do you make money?", multi:true, options:["One-off sale","Commission","Recurring/subscription","Rental","Referral fees","Retainer","Other"] },
+    { id:"upsell", type:"textarea", label:"What do you upsell or cross-sell after the first deal?", opt:true, ph:"e.g. furniture, concierge, insurance after a property sale" },
+  ]},
+  { id:"audience", icon:"🌍", title:"Audience & markets", intro:"Who you're trying to reach and where they are. This drives targeting, content, and outreach.", fields:[
+    { id:"icp", type:"textarea", label:"Who is your ideal client?", help:"Be specific: who they are, what they want, what they can spend.", ph:"" },
+    { id:"markets", type:"tags", label:"Which markets / countries do you target?", help:"Type and press Enter to add each.", ph:"e.g. United States, Russia, China…" },
+    { id:"langs", type:"chips", label:"Languages you sell in", multi:true, options:["English","Thai","Russian","Chinese","Other"] },
+    { id:"power", type:"scale", label:"How price-sensitive is your audience?", endsLow:"Very price-sensitive", endsHigh:"Money is no object" },
+    { id:"hangouts", type:"textarea", label:"Where does your audience hang out — online & offline?", help:"Apps, pages they follow, events, communities, courses. The more specific, the better we can target.", ph:"" },
+  ]},
+  { id:"funnel", icon:"🎯", title:"How leads find you today", intro:"Your current funnel from first contact to closed deal — so we can find the leaks and plug them.", fields:[
+    { id:"channels", type:"chips", label:"Where do leads currently come from?", multi:true, options:["Instagram","Facebook","WhatsApp","Referrals","Paid ads","Website","Walk-ins","Other"] },
+    { id:"process", type:"textarea", label:"Walk me through first contact → closed deal", help:"What actually happens, step by step, when a new lead shows up?", ph:"" },
+    { id:"tools", type:"chips", label:"How do you track leads & clients today?", multi:true, options:["Google Sheets","Notion","A real CRM","WhatsApp","Just my memory","Other"] },
+    { id:"convert", type:"text", label:"Roughly, how many leads to close one deal?", opt:true, ph:"e.g. ~20 leads → 1 sale" },
+    { id:"leak", type:"textarea", label:"Where do you lose the most deals?", help:"Slow follow-up? Leads go cold? No system? Tell us the truth.", ph:"" },
+  ]},
+  { id:"content", icon:"🎬", title:"Content & marketing", intro:"How you show up and what your brand sounds like. This trains your content engine.", fields:[
+    { id:"platforms", type:"chips", label:"Where do you post content?", multi:true, options:["Instagram","TikTok","YouTube","Facebook","X / Twitter","LinkedIn","None yet"] },
+    { id:"cadence", type:"select", label:"How often do you post?", options:["Daily","A few times a week","Weekly","Rarely","Never"] },
+    { id:"whomakes", type:"select", label:"Who makes your content?", options:["I film & edit it myself","A freelancer / team","A mix","No one yet"] },
+    { id:"voice", type:"textarea", label:"Describe your brand voice & tone", help:"How do you want to sound? Confident? Warm? Witty? Luxe? Give examples if you can.", ph:"" },
+    { id:"worked", type:"textarea", label:"What content has worked best so far?", opt:true, ph:"Link or describe your best posts." },
+    { id:"ads", type:"textarea", label:"Running ads? What's your experience & budget?", opt:true, ph:"What you've tried, what worked, what didn't." },
+  ]},
+  { id:"comp", icon:"🔭", title:"Competitors", intro:"Who you're up against. We'll analyze their public footprint and find where you can win.", fields:[
+    { id:"competitors", type:"tags", label:"Your main competitors", help:"Names or @handles. Press Enter to add each.", ph:"e.g. @some_agent…" },
+    { id:"theywell", type:"textarea", label:"What do they do well?", opt:true, ph:"" },
+    { id:"youredge", type:"textarea", label:"Where can you beat them?", ph:"" },
+  ]},
+  { id:"network", icon:"🤝", title:"Network & relationships", intro:"Your warm network is often your strongest asset. This powers the CRM & referral engine.", fields:[
+    { id:"pastclients", type:"text", label:"Roughly how many past clients do you have?", opt:true, ph:"e.g. ~120" },
+    { id:"referral", type:"textarea", label:"How do referrals & word-of-mouth work for you today?", ph:"How do happy clients send you more business — and could it be more systematic?" },
+    { id:"partners", type:"textarea", label:"Key partners who send you business", opt:true, ph:"e.g. a partner who sources listings, a mortgage broker…" },
+    { id:"crmstate", type:"select", label:"Do you track past clients & their important dates?", options:["Yes, in a tool","Sort of — scattered","No, not really"] },
+  ]},
+  { id:"goals", icon:"🏆", title:"Goals", intro:"What winning looks like — so we build toward a number, not a vibe.", fields:[
+    { id:"northstar", type:"textarea", label:"What does success look like in 6 months?", ph:"Paint the picture." },
+    { id:"targets", type:"text", label:"Concrete targets", help:"Real numbers help us reverse-engineer the plan.", ph:"e.g. 30 qualified leads/mo, 5 deals/mo" },
+    { id:"bottleneck", type:"select", label:"Your single biggest bottleneck right now", options:["Not enough leads","Leads don't convert","No time for content","Losing track of clients","Can't scale past myself","Other"] },
+    { id:"timeline", type:"select", label:"How urgently do you need results?", options:["ASAP","This quarter","This year","Just exploring"] },
+  ]},
+  { id:"agent", icon:"🤖", title:"Your agent setup", intro:"How your AI team should work for you. We'll wire up everything you approve.", fields:[
+    { id:"channelpref", type:"chips", label:"Where should your agent live?", multi:true, options:["WhatsApp","Line","Telegram","Email"] },
+    { id:"autonomy", type:"select", label:"How much should it do on its own to start?", options:["Draft only — I approve everything","Handle routine, ask before sending","Run with it within my limits"] },
+    { id:"firstwin", type:"textarea", label:"If it could nail ONE thing first, what would it be?", ph:"Your most painful problem to solve on day one." },
+    { id:"creds", type:"chips", label:"Which accounts can we connect on your behalf?", multi:true, options:["Instagram","WhatsApp","Email","CRM / Sheets","Facebook","Calendar"] },
+  ]},
+  { id:"more", icon:"✨", title:"Anything else", intro:"This is the secret weapon. The more context you give — even personal details — the more your agent feels like it truly knows you.", fields:[
+    { id:"dump", type:"textarea", big:true, label:"Tell your agent everything else", help:"Your network, your style, your pet peeves, your wins and scars, how you like to work, what you'd never say, even your pets. Don't hold back — context is the difference between a generic AI and one that feels like you.", ph:"Write as much as you like…" },
+  ]},
+];
+
+/* ===================== STATE ===================== */
+const KEY = "aion3_intake_v1";
+let state = JSON.parse(localStorage.getItem(KEY) || "{}");
+let cur = 0;        // current section index
+let submitted = false;
+
+const allFields = SECTIONS.flatMap(s => s.fields);
+const requiredFields = allFields.filter(f => !f.opt);
+function isFilled(f){
+  const v = state[f.id];
+  if(f.type==="chips"||f.type==="tags") return Array.isArray(v) && v.length>0;
+  if(f.type==="scale") return typeof v === "number";
+  return typeof v === "string" && v.trim().length>0;
+}
+function sectionDone(s){ return s.fields.filter(f=>!f.opt).every(isFilled); }
+function progress(){ const done = requiredFields.filter(isFilled).length; return Math.round(done/requiredFields.length*100); }
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); flashSaved(); }
+let saveTimer;
+function flashSaved(){ const t=document.getElementById('saveTxt'); t.textContent="Saving…"; clearTimeout(saveTimer); saveTimer=setTimeout(()=>t.textContent="Saved automatically",500); }
+
+/* ===================== FIELD RENDERERS ===================== */
+function fieldHTML(f){
+  const v = state[f.id];
+  const head = `<label>${f.label}${f.opt?'<span class="opt">optional</span>':'<span class="req">*</span>'}</label>${f.help?`<div class="help">${f.help}</div>`:''}`;
+  let body = "";
+  if(f.type==="text") body = `<input class="t" data-f="${f.id}" value="${esc(v||'')}" placeholder="${f.ph||''}">`;
+  else if(f.type==="textarea") body = `<textarea class="t ${f.big?'big':''}" data-f="${f.id}" placeholder="${f.ph||''}">${esc(v||'')}</textarea>`;
+  else if(f.type==="chips") body = `<div class="chips">${f.options.map(o=>`<div class="chip ${(v||[]).includes(o)?'sel':''}" data-chip="${f.id}" data-val="${esc(o)}">${o}</div>`).join('')}</div>`;
+  else if(f.type==="select") body = `<div class="chips">${f.options.map(o=>`<div class="chip ${v===o?'sel':''}" data-sel="${f.id}" data-val="${esc(o)}">${o}</div>`).join('')}</div>`;
+  else if(f.type==="scale"){
+    body = `<div class="scale">${[1,2,3,4,5].map(n=>`<div class="s ${v===n?'sel':''}" data-scale="${f.id}" data-val="${n}">${n}</div>`).join('')}</div><div class="scale-ends"><span>${f.endsLow||'Low'}</span><span>${f.endsHigh||'High'}</span></div>`;
+  }
+  else if(f.type==="tags"){
+    body = `<div class="tags-wrap"><input class="tags-in" data-tagin="${f.id}" placeholder="${f.ph||''}"><div class="tags" data-tags="${f.id}">${(v||[]).map(t=>`<span class="tag">${esc(t)}<span class="x" data-tagx="${f.id}" data-val="${esc(t)}">✕</span></span>`).join('')}</div></div>`;
+  }
+  return `<div class="field">${head}${body}</div>`;
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ===================== RENDER ===================== */
+function renderNav(){
+  document.getElementById('secNav').innerHTML = SECTIONS.map((s,i)=>`
+    <div class="sec-item ${i===cur?'active':''} ${sectionDone(s)?'done':''}" data-sec="${i}">
+      <div class="sec-ico">${s.icon}</div>
+      <span class="tt">${s.title}</span>
+      <span class="tick"></span>
+    </div>`).join('');
+  document.querySelectorAll('[data-sec]').forEach(el=>el.onclick=()=>{ cur=+el.dataset.sec; render(); });
+  const p = progress();
+  document.getElementById('pct').textContent = p+'%';
+  document.getElementById('bar').style.width = p+'%';
+}
+function render(){
+  document.querySelector('.footer').style.display = submitted ? 'none' : 'flex';
+  if(submitted){ renderDone(); renderNav(); return; }
+  const s = SECTIONS[cur];
+  document.getElementById('sheet').innerHTML = `
+    <div class="sec-head">
+      <div class="eyebrow">Section ${cur+1} · ${SECTIONS.length} total</div>
+      <h1>${s.title}</h1>
+      <div class="intro">${s.intro}</div>
+    </div>
+    ${s.fields.map(fieldHTML).join('')}`;
+  document.getElementById('crumbSec').textContent = s.title;
+  document.getElementById('secX').textContent = cur+1;
+  document.getElementById('secN').textContent = SECTIONS.length;
+  document.getElementById('back').style.visibility = cur===0?'hidden':'visible';
+  document.getElementById('next').innerHTML = cur===SECTIONS.length-1
+    ? 'Submit intake <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>'
+    : 'Next section <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  bindFields();
+  renderNav();
+  document.getElementById('scroll').scrollTop = 0;
+}
+function bindFields(){
+  document.querySelectorAll('[data-f]').forEach(el=>el.oninput=()=>{ state[el.dataset.f]=el.value; save(); renderNav(); });
+  document.querySelectorAll('[data-chip]').forEach(el=>el.onclick=()=>{
+    const id=el.dataset.chip, val=el.dataset.val; state[id]=state[id]||[];
+    const i=state[id].indexOf(val); i>-1?state[id].splice(i,1):state[id].push(val);
+    save(); render();
+  });
+  document.querySelectorAll('[data-sel]').forEach(el=>el.onclick=()=>{ state[el.dataset.sel]=el.dataset.val; save(); render(); });
+  document.querySelectorAll('[data-scale]').forEach(el=>el.onclick=()=>{ state[el.dataset.scale]=+el.dataset.val; save(); render(); });
+  document.querySelectorAll('[data-tagin]').forEach(el=>el.onkeydown=(e)=>{
+    if(e.key==='Enter' && el.value.trim()){ const id=el.dataset.tagin; state[id]=state[id]||[]; state[id].push(el.value.trim()); el.value=''; save(); render(); setTimeout(()=>{const n=document.querySelector(`[data-tagin="${id}"]`); if(n)n.focus();},0); }
+  });
+  document.querySelectorAll('[data-tagx]').forEach(el=>el.onclick=()=>{ const id=el.dataset.tagx; state[id]=state[id].filter(t=>t!==el.dataset.val); save(); render(); });
+}
+
+function renderDone(){
+  const filled = requiredFields.filter(isFilled).length;
+  document.getElementById('sheet').innerHTML = `
+    <div class="done-card">
+      <div class="orb">✦</div>
+      <h1>Intake received. Thank you.</h1>
+      <p>You answered ${filled} of ${requiredFields.length} core questions${progress()<100?' — you can always come back and add more, richer context means a sharper agent':''}. Here's what happens next at AIOn3:</p>
+      <div class="steps3">
+        <div class="s3"><div class="n">01</div><div class="t">Diagnosis</div><div class="d">We study your answers + your public footprint to map your funnel and gaps.</div></div>
+        <div class="s3"><div class="n">02</div><div class="t">Custom build</div><div class="d">We design your Chief of Staff + specialist team and the tools around them.</div></div>
+        <div class="s3"><div class="n">03</div><div class="t">Your proposal</div><div class="d">You get a tailored proposal & a live agent — usually within 1–2 weeks.</div></div>
+      </div>
+    </div>`;
+  document.getElementById('crumbSec').textContent = "Submitted";
+}
+
+/* ===================== NAV ===================== */
+document.getElementById('next').onclick=()=>{
+  if(cur<SECTIONS.length-1){ cur++; render(); }
+  else { submitted=true; save(); render(); }
+};
+document.getElementById('back').onclick=()=>{ if(cur>0){ cur--; render(); } };
+document.getElementById('exitBtn').onclick=()=>{ save(); alert('Saved. You can close this and resume anytime from your link.'); };
+document.getElementById('clearBtn').onclick=()=>{ if(confirm('Clear all answers on this device?')){ state={}; localStorage.removeItem(KEY); submitted=false; cur=0; render(); } };
+
+render();
+</script>
+</body>
+</html>
